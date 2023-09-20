@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -87,23 +86,39 @@ func (c *Client) getZones(ctx context.Context, zone string) (*ZonesResponse, err
 
 func (c *Client) GetRecordSetID(ctx context.Context, zoneID, fqdn string) (string, error) {
 	recordSetsRes, err := c.getRecordSet(ctx, zoneID, fqdn)
+	var records string
 	if err != nil {
 		return "", err
 	}
 
-	if len(recordSetsRes.RecordSets) < 1 {
-		return "", errors.New("record not found")
+	if l := len(recordSetsRes.RecordSets); l < 1 {
+		return "", nil
+	} else {
+		records = recordSetsRes.RecordSets[0].ID
 	}
 
-	if len(recordSetsRes.RecordSets) > 1 {
-		return "", errors.New("to many records found")
+	return records, nil
+}
+
+func (c *Client) GetRecordSetValue(ctx context.Context, zoneID, fqdn string) ([]string, error) {
+	recordSetsRes, err := c.getRecordSet(ctx, zoneID, fqdn)
+	var (
+		recBuffer []string
+	)
+	if err != nil {
+		return nil, err
 	}
 
-	if recordSetsRes.RecordSets[0].ID == "" {
-		return "", errors.New("id not found")
+	if l := len(recordSetsRes.RecordSets[0].Records); l < 1 {
+		return nil, nil
+	} else {
+		recBuffer = make([]string, l)
+		for i := 0; i < l; i++ {
+			recBuffer[i] = recordSetsRes.RecordSets[0].Records[i]
+		}
 	}
 
-	return recordSetsRes.RecordSets[0].ID, nil
+	return recBuffer, nil
 }
 
 // https://docs.otc.t-systems.com/domain-name-service/api-ref/apis/record_set_management/querying_all_record_sets.html
@@ -146,19 +161,42 @@ func (c *Client) CreateRecordSet(ctx context.Context, zoneID string, record Reco
 	return c.do(req, nil)
 }
 
-// DeleteRecordSet delete a record set.
-// https://docs.otc.t-systems.com/domain-name-service/api-ref/apis/record_set_management/deleting_a_record_set.html
-func (c *Client) DeleteRecordSet(ctx context.Context, zoneID, recordID string) error {
+// ModifyRecordSet modifies a record.
+// https://docs.otc.t-systems.com/domain-name-service/api-ref/apis/record_set_management/modifying_a_record_set.html
+func (c *Client) ModifyRecordSet(ctx context.Context, zoneID string, recordID string, record RecordSets) error {
 	c.muBaseURL.Lock()
 	endpoint := c.baseURL.JoinPath("zones", zoneID, "recordsets", recordID)
 	c.muBaseURL.Unlock()
 
-	req, err := newJSONRequest(ctx, http.MethodDelete, endpoint, nil)
+	req, err := newJSONRequest(ctx, http.MethodPut, endpoint, record)
 	if err != nil {
 		return err
 	}
 
 	return c.do(req, nil)
+}
+
+// DeleteRecordSet delete a record set.
+// https://docs.otc.t-systems.com/domain-name-service/api-ref/apis/record_set_management/deleting_a_record_set.html
+func (c *Client) DeleteRecordSet(ctx context.Context, zoneID string, recordID string) error {
+	var (
+		req *http.Request
+		err error
+	)
+
+	c.muBaseURL.Lock()
+	endpoint := c.baseURL.JoinPath("zones", zoneID, "recordsets", recordID)
+	c.muBaseURL.Unlock()
+
+	req, err = newJSONRequest(ctx, http.MethodDelete, endpoint, nil)
+	if err != nil {
+		return err
+	}
+	if req != nil {
+		err = c.do(req, nil)
+	}
+
+	return err
 }
 
 func (c *Client) do(req *http.Request, result any) error {
