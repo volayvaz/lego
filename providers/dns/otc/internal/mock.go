@@ -139,6 +139,73 @@ func (m *DNSServerMock) HandleListRecordsetsSuccessfully() {
 			return
 		}
 
+		/*if r.Method == http.MethodPost {
+			assert.Equal(m.t, "application/json", r.Header.Get("Content-Type"))
+
+			raw, err := io.ReadAll(r.Body)
+			assert.Nil(m.t, err)
+			exceptedString := `{
+				"name": "_acme-challenge.example.com.",
+				"description": "Added TXT record for ACME dns-01 challenge using lego client",
+				"type": "TXT",
+				"ttl": 300,
+				"records": ["\"w6uP8Tcg6K2QR905Rms8iXTlksL6OD1KOWBxTK7wxPI\""]
+			}`
+
+			assert.JSONEq(m.t, exceptedString, string(raw))
+
+			writeFixture(w, "zones-recordsets_POST.json")
+			return
+		}*/
+
+		http.Error(w, fmt.Sprintf("Expected method to be 'GET' but got '%s'", r.Method), http.StatusBadRequest)
+	})
+}
+
+// HandleListRecordsetsForUpdate Handle list recordsets for an Update successfully.
+func (m *DNSServerMock) HandleListRecordsetsForUpdate() {
+	m.mux.HandleFunc("/v2/zones/123123/recordsets/321321", func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(m.t, "application/json", r.Header.Get("Accept"))
+
+		if r.Method == http.MethodPut {
+			assert.Equal(m.t, "application/json", r.Header.Get("Content-Type"))
+
+			raw, err := io.ReadAll(r.Body)
+			assert.Nil(m.t, err)
+			exceptedString := `{
+				"name": "_acme-challenge.example.com.",
+				"description": "Added TXT record for ACME dns-01 challenge using lego client",
+				"type": "TXT",
+				"ttl": 300,
+				"records": [
+					"ns1.hotrot.de. xx.example.com. (1 7200 900 1209600 300)", 
+					"\"w6uP8Tcg6K2QR905Rms8iXTlksL6OD1KOWBxTK7wxPI\""
+					]
+			}`
+
+			assert.JSONEq(m.t, exceptedString, string(raw))
+
+			writeFixture(w, "zones-recordsets_POST.json")
+			return
+		}
+
+		http.Error(w, fmt.Sprintf("Expected method to be PUT but got '%s'", r.Method), http.StatusBadRequest)
+	})
+}
+
+// HandleListRecordsetsSuccessfully Handle list recordsets successfully.
+func (m *DNSServerMock) HandleListRecordsetsCreateSuccessfully() {
+	m.mux.HandleFunc("/v2/zones/123123/recordsets", func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(m.t, "application/json", r.Header.Get("Accept"))
+
+		if r.Method == http.MethodGet {
+			assert.Equal(m.t, "/v2/zones/123123/recordsets", r.URL.Path)
+			assert.Equal(m.t, "name=_acme-challenge.example.com.&type=TXT", r.URL.RawQuery)
+
+			writeFixture(w, "zones-recordsets_GET_empty.json")
+			return
+		}
+
 		if r.Method == http.MethodPost {
 			assert.Equal(m.t, "application/json", r.Header.Get("Content-Type"))
 

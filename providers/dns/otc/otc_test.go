@@ -87,6 +87,18 @@ func (s *OTCSuite) TestLoginEnvEmpty() {
 func (s *OTCSuite) TestDNSProvider_Present() {
 	s.mock.HandleListZonesSuccessfully()
 	s.mock.HandleListRecordsetsSuccessfully()
+	s.mock.HandleListRecordsetsForUpdate()
+
+	provider, err := s.createDNSProvider()
+	s.Require().NoError(err)
+
+	err = provider.Present("example.com", "", "foobar")
+	s.Require().NoError(err)
+}
+
+func (s *OTCSuite) TestDNSProvider_Present_EmptyRecordset() {
+	s.mock.HandleListZonesSuccessfully()
+	s.mock.HandleListRecordsetsCreateSuccessfully()
 
 	provider, err := s.createDNSProvider()
 	s.Require().NoError(err)
@@ -126,5 +138,5 @@ func (s *OTCSuite) TestDNSProvider_CleanUp_EmptyRecordset() {
 	s.Require().NoError(err)
 
 	err = provider.CleanUp("example.com", "", "foobar")
-	s.Require().Error(err)
+	s.Require().Nil(err)
 }
