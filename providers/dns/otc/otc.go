@@ -167,7 +167,7 @@ func (d *DNSProvider) Present(domain, token, keyAuth string) error {
 		recordValue = append(recordValue, fmt.Sprintf("%q", info.Value))
 		record := internal.RecordSets{
 			Name:        info.EffectiveFQDN,
-			Description: "Update TXT record for ACME dns-01 challenge using lego client",
+			Description: "Added TXT record for ACME dns-01 challenge using lego client",
 			Type:        "TXT",
 			TTL:         d.config.TTL,
 			Records:     recordValue,

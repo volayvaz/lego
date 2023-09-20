@@ -93,29 +93,28 @@ func (c *Client) GetRecordSetID(ctx context.Context, zoneID, fqdn string) (strin
 
 	if l := len(recordSetsRes.RecordSets); l < 1 {
 		return "", nil
-	} else {
-		records = recordSetsRes.RecordSets[0].ID
 	}
+
+	records = recordSetsRes.RecordSets[0].ID
 
 	return records, nil
 }
 
 func (c *Client) GetRecordSetValue(ctx context.Context, zoneID, fqdn string) ([]string, error) {
 	recordSetsRes, err := c.getRecordSet(ctx, zoneID, fqdn)
-	var (
-		recBuffer []string
-	)
+	var recBuffer []string
 	if err != nil {
 		return nil, err
 	}
 
-	if l := len(recordSetsRes.RecordSets[0].Records); l < 1 {
+	l := len(recordSetsRes.RecordSets[0].Records)
+	if l < 1 {
 		return nil, nil
-	} else {
-		recBuffer = make([]string, l)
-		for i := 0; i < l; i++ {
-			recBuffer[i] = recordSetsRes.RecordSets[0].Records[i]
-		}
+	}
+
+	recBuffer = make([]string, l)
+	for i := 0; i < l; i++ {
+		recBuffer[i] = recordSetsRes.RecordSets[0].Records[i]
 	}
 
 	return recBuffer, nil
