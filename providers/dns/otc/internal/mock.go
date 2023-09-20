@@ -139,25 +139,6 @@ func (m *DNSServerMock) HandleListRecordsetsSuccessfully() {
 			return
 		}
 
-		/*if r.Method == http.MethodPost {
-			assert.Equal(m.t, "application/json", r.Header.Get("Content-Type"))
-
-			raw, err := io.ReadAll(r.Body)
-			assert.Nil(m.t, err)
-			exceptedString := `{
-				"name": "_acme-challenge.example.com.",
-				"description": "Added TXT record for ACME dns-01 challenge using lego client",
-				"type": "TXT",
-				"ttl": 300,
-				"records": ["\"w6uP8Tcg6K2QR905Rms8iXTlksL6OD1KOWBxTK7wxPI\""]
-			}`
-
-			assert.JSONEq(m.t, exceptedString, string(raw))
-
-			writeFixture(w, "zones-recordsets_POST.json")
-			return
-		}*/
-
 		http.Error(w, fmt.Sprintf("Expected method to be 'GET' but got '%s'", r.Method), http.StatusBadRequest)
 	})
 }
@@ -193,7 +174,7 @@ func (m *DNSServerMock) HandleListRecordsetsForUpdate() {
 	})
 }
 
-// HandleListRecordsetsSuccessfully Handle list recordsets successfully.
+// HandleListRecordsetsCreateSuccessfully Handle list recordsets successfully.
 func (m *DNSServerMock) HandleListRecordsetsCreateSuccessfully() {
 	m.mux.HandleFunc("/v2/zones/123123/recordsets", func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(m.t, "application/json", r.Header.Get("Accept"))
