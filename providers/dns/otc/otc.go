@@ -147,18 +147,38 @@ func (d *DNSProvider) Present(domain, token, keyAuth string) error {
 		return fmt.Errorf("otc: unable to get zone: %w", err)
 	}
 
-	record := internal.RecordSets{
-		Name:        info.EffectiveFQDN,
-		Description: "Added TXT record for ACME dns-01 challenge using lego client",
-		Type:        "TXT",
-		TTL:         d.config.TTL,
-		Records:     []string{fmt.Sprintf("%q", info.Value)},
-	}
+	/////
+	recordID, _ := d.client.GetRecordSetID(ctx, zoneID, info.EffectiveFQDN)
+	if recordID == "" {
+		record := internal.RecordSets{
+			Name:        info.EffectiveFQDN,
+			Description: "Added TXT record for ACME dns-01 challenge using lego client",
+			Type:        "TXT",
+			TTL:         d.config.TTL,
+			Records:     []string{fmt.Sprintf("%q", info.Value)},
+		}
 
-	err = d.client.CreateRecordSet(ctx, zoneID, record)
-	if err != nil {
-		return fmt.Errorf("otc: %w", err)
+		err = d.client.CreateRecordSet(ctx, zoneID, record)
+		if err != nil {
+			return fmt.Errorf("otc: %w", err)
+		}
+	} else {
+		recordValue, _ := d.client.GetRecordSetValue(ctx, zoneID, info.EffectiveFQDN)
+		recordValue = append(recordValue, fmt.Sprintf("%q", info.Value))
+		record := internal.RecordSets{
+			Name:        info.EffectiveFQDN,
+			Description: "Update TXT record for ACME dns-01 challenge using lego client",
+			Type:        "TXT",
+			TTL:         d.config.TTL,
+			Records:     recordValue,
+		}
+		err = d.client.ModifyRecordSet(ctx, zoneID, recordID, record)
+		if err != nil {
+			return fmt.Errorf("otc: %w", err)
+		}
+		return nil
 	}
+	/////
 
 	return nil
 }
@@ -189,11 +209,12 @@ func (d *DNSProvider) CleanUp(domain, token, keyAuth string) error {
 		return fmt.Errorf("otc: unable to get record %s for zone %s: %w", info.EffectiveFQDN, domain, err)
 	}
 
-	err = d.client.DeleteRecordSet(ctx, zoneID, recordID)
-	if err != nil {
-		return fmt.Errorf("otc: %w", err)
+	if recordID != "" {
+		err = d.client.DeleteRecordSet(ctx, zoneID, recordID)
+		if err != nil {
+			return fmt.Errorf("otc: %w", err)
+		}
 	}
-
 	return nil
 }
 
